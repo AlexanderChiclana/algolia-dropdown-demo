@@ -1,73 +1,64 @@
-import { useState, useRef, useEffect } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
-// import "./App.css";
-import { Dropdown } from "primereact/dropdown";
+import { useState } from "react";
 import { AutoComplete } from "primereact/autocomplete";
 import algoliasearch from "algoliasearch";
 import { PrimeReactProvider, PrimeReactContext } from "primereact/api";
 import "primereact/resources/themes/lara-light-cyan/theme.css";
 
-const client = algoliasearch("N7QFRS1570", "6aad582b7480ed27c1a262269e346020");
-const index = client.initIndex("schools");
+const client = algoliasearch("BFTMIHSJ58", "93801c3bbf559fa76980c51720114a25");
+const index = client.initIndex("majors");
 
 function App() {
   const [value, setValue] = useState("");
-  const [items, setItems] = useState([]);
   const [majors, setMajors] = useState([]);
 
-  const search = (event) => {
-    const searchRecursive = (page = 0, allHits = []) => {
-      index
-        .search(event.query, {
-          hitsPerPage: 1000,
-          page: page,
-          filters: `locale:en-US`,
-        })
-        .then(({ hits, nbPages }) => {
-          const combinedHits = [...allHits, ...hits];
-          if (page < nbPages - 1) {
-            searchRecursive(page + 1, combinedHits);
-          } else {
-            console.log(combinedHits);
-            setMajors(
-              combinedHits.map((hit) => {
-                return {
-                  title: hit.title,
-                  slug: hit.slug,
-                };
-              })
-            );
-          }
-        })
-        .catch((err) => {
-          console.log(err);
-        });
-    };
+  const search = async (event) => {
+    const hitsPerPage = 2000;
+    let page = 0;
+    let allHits = [];
+    let offset = 0;
+    let length = 1000;
 
-    searchRecursive();
+    try {
+      while (true) {
+        const res = await index.search(event.query, {
+          hitsPerPage: hitsPerPage,
+          // page: page || 0,
+          offset: offset,
+          length: length,
+          filters: `locale:"en-US"`,
+        });
+
+        console.log("res:", res);
+
+        // console.log('offset:', offset, 'hitsPerPage:', hitsPerPage);
+
+        const pageCount = Math.ceil(res.nbHits / hitsPerPage);
+
+        // console.log('page:', page, 'pageCount:', pageCount );
+
+        allHits = [...allHits, ...res.hits];
+
+        if (offset > res.nbHits) {
+          break; // Exit the loop when all pages have been fetched
+        }
+
+        offset += length;
+      }
+
+      console.log(allHits);
+      setMajors(
+        allHits.map((hit) => ({
+          title: hit.title,
+          slug: hit.slug,
+        }))
+      );
+    } catch (err) {
+      console.error("Error during search:", err);
+    }
   };
 
-  // useEffect(() => {
-  //   if (value === "") {
-  //     console.log('empty value');
-  //     index
-  //       .search("", {
-  //         hitsPerPage: 1000,
-  //         filters: `locale:en-US`,
-  //       })
-  //       .then(({ hits }) => {
-  //         console.log(hits);
-  //         setMajors(hits.map((hit) => hit.title));
-  //       })
-  //       .catch((err) => {
-  //         console.log(err);
-  //       });
-  //   }
-  // }, [value]);
-
   const handleEvent = (e) => {
-    console.log(e);
+    // console.log(e);
     setValue(e.value);
   };
 
