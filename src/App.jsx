@@ -1,19 +1,35 @@
 import { useState } from "react";
 import { AutoComplete } from "primereact/autocomplete";
 import algoliasearch from "algoliasearch";
-import { PrimeReactProvider, PrimeReactContext } from "primereact/api";
+import { PrimeReactProvider } from "primereact/api";
 import "primereact/resources/themes/lara-light-cyan/theme.css";
 
-const client = algoliasearch("BFTMIHSJ58", "93801c3bbf559fa76980c51720114a25");
-const index = client.initIndex("majors");
+const client = algoliasearch(process.env.ALGOLIA_APP_ID, process.env.ALGOLIA_SECRET_KEY);
 
 function App() {
+  return (
+    <PrimeReactProvider>
+      <FullIndexSearch index="majors_dropdown" />
+      <FullIndexSearch index="careers_dropdown" />
+      <FullIndexSearch index="schools_dropdown" />
+      <FullIndexSearch index="career-pathways_dropdown" />
+      <FullIndexSearch index="companies_dropdown" />
+      <FullIndexSearch index="job-categories_dropdown" />
+    </PrimeReactProvider>
+  );
+}
+
+const FullIndexSearch = (props) => {
+  const index = client.initIndex(props.index);
   const [value, setValue] = useState("");
-  const [majors, setMajors] = useState([]);
+  const [results, setResults] = useState([]);
+
+  // selected item, titles, slugs, and cip codes for majors
+  const [selectedItems, setSelectedItems] = useState([]);
+
 
   const search = async (event) => {
     const hitsPerPage = 2000;
-    let page = 0;
     let allHits = [];
     let offset = 0;
     let length = 1000;
@@ -22,19 +38,10 @@ function App() {
       while (true) {
         const res = await index.search(event.query, {
           hitsPerPage: hitsPerPage,
-          // page: page || 0,
           offset: offset,
           length: length,
           filters: `locale:"en-US"`,
         });
-
-        console.log("res:", res);
-
-        // console.log('offset:', offset, 'hitsPerPage:', hitsPerPage);
-
-        const pageCount = Math.ceil(res.nbHits / hitsPerPage);
-
-        // console.log('page:', page, 'pageCount:', pageCount );
 
         allHits = [...allHits, ...res.hits];
 
@@ -45,11 +52,11 @@ function App() {
         offset += length;
       }
 
-      console.log(allHits);
-      setMajors(
+      setResults(
         allHits.map((hit) => ({
           title: hit.title,
           slug: hit.slug,
+          ...(props.index === 'majors_dropdown' && hit.major_cip), // this CIP code is to identify the major
         }))
       );
     } catch (err) {
@@ -57,30 +64,42 @@ function App() {
     }
   };
 
-  const handleEvent = (e) => {
-    // console.log(e);
-    setValue(e.value);
-  };
+  const handleSelect = (e) => {
+    console.log('select')
+    console.log(e);
+    setSelectedItems([...selectedItems, e.value]);
+  }
+
+  const handleUnselect = (e) => {
+    console.log('unselect')
+    console.log(e);
+    setSelectedItems(selectedItems.filter(item => item.slug !== e.value.slug));
+  }
 
   return (
-    <PrimeReactProvider>
-      <h1 className="text-3xl text-center mt-10">Majors</h1>
-      <div className="card flex justify-content-center w-full p-20 pt-10">
+    <>
+      <h1 className="text-3xl text-center mt-10">{props.index}</h1>
+      <div className="card flex justify-content-center w-full p-16 pt-10">
         <div className="mx-auto">
           <AutoComplete
             value={value}
             field="title"
-            suggestions={majors}
+            suggestions={results}
             completeMethod={search}
-            onChange={handleEvent}
+            onChange={(e) => setValue(e.value)}
+            onSelect={(e) => handleSelect(e)}
+            onUnselect={(e) => handleUnselect(e)}
+            scrollHeight="500px"
             dropdown
+            forceSelection
             autoHighlight
+            multiple
             style={{ border: "1px solid #ccc", borderRadius: "5px" }}
           />
         </div>
       </div>
-    </PrimeReactProvider>
+    </>
   );
-}
+};
 
 export default App;

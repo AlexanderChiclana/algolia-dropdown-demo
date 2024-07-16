@@ -2,10 +2,3 @@
 @tailwind components;
 @tailwind utilities;
 
-.p-autocomplete-item:last-of-type::after {
-    content: "Type for more suggestions"; /* Text content to display */
-    display: block; /* Ensures it's a block element */
-    color: #666; /* Example: Adjust text color */
-    font-style: italic; /* Example: Italic font */
-    margin-top: 5px; /* Example: Adjust spacing */
-  }
