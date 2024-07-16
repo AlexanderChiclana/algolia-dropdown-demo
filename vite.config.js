@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/',
+  base: '/algolia-dropdown-demo/',
   define: {
     'process.env': dotenv.config().parsed
   }
